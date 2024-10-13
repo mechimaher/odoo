@@ -110,12 +110,12 @@ if [[ "$PG_VERSION" < "12" ]]; then
     exit 1
 fi
 
-# Create Odoo system user
+# Create Odoo system user with a valid shell
 print_message "Creating Odoo system user..."
 if id "$ODOO_USER" &>/dev/null; then
     print_warning "User $ODOO_USER already exists. Skipping user creation."
 else
-    adduser --system --home=$ODOO_DIR --group $ODOO_USER
+    adduser --system --home=$ODOO_DIR --shell=/bin/bash --group $ODOO_USER
     check_command "Failed to create Odoo system user"
 fi
 
@@ -136,9 +136,9 @@ install_package "wkhtmltopdf"
 print_message "Installing Odoo 17..."
 if [ -d "$ODOO_DIR/odoo17" ]; then
     print_warning "Odoo directory already exists. Updating..."
-    su - $ODOO_USER -c "cd $ODOO_DIR/odoo17 && git pull"
+    sudo -u $ODOO_USER bash -c "cd $ODOO_DIR/odoo17 && git pull"
 else
-    su - $ODOO_USER -c "
+    sudo -u $ODOO_USER bash -c "
         git clone https://www.github.com/odoo/odoo --depth 1 --branch 17.0 $ODOO_DIR/odoo17
         python3 -m venv $ODOO_DIR/odoo17-venv
         source $ODOO_DIR/odoo17-venv/bin/activate
@@ -159,7 +159,7 @@ fi
 
 cat << EOF > /etc/odoo17.conf
 [options]
-admin_passwd = $(openssl rand -base64 12)
+admin_passwd = admin
 db_host = False
 db_port = False
 db_user = $ODOO_USER
@@ -302,5 +302,5 @@ if [ "$ENV" != "PYCHARM" ]; then
     print_message "To set up SSL with Certbot, run: sudo certbot --nginx -d $DOMAIN"
 fi
 
-print_message "Please make sure to change the default master password in /etc/odoo17.conf"
+print_message "Please make sure to change the default master password admin in /etc/odoo17.conf"
 print_message "Installation complete. Enjoy your Odoo 17 instance!"
